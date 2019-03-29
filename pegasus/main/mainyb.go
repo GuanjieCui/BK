@@ -23,7 +23,7 @@ type Location struct{
 type Order struct{
     UserId uint16 `json:"UserId"`
     Size string `json:"Size"`
-    arrivalTime string `json:"arrival"`
+    ArrivalTime string `json:"Arrival"`
     Weight float64 `json:"Weight"`
     PickupLoc Location `json:"PickupLoc"`
     DropoffLoc Location `json:"DropoffLoc"`
@@ -70,8 +70,8 @@ func handlerOrder(w http.ResponseWriter,r *http.Request){
 		panic(err.Error())  // Just for example purpose. You should use proper error handling instead of panic
 	}
 	defer q.Close()
-    fmt.Println(p.arrivalTime)
-	_,err=q.Exec(sz+1,p.UserId,p.Size,p.Weight,p.PickupLoc.Lat,p.PickupLoc.Lon,p.DropoffLoc.Lat,p.DropoffLoc.Lon,p.arrivalTime)
+    fmt.Println(p.ArrivalTime)
+	_,err=q.Exec(sz+1,p.UserId,p.Size,p.Weight,p.PickupLoc.Lat,p.PickupLoc.Lon,p.DropoffLoc.Lat,p.DropoffLoc.Lon,p.ArrivalTime)
 	if err != nil {
 		panic(err.Error()) // proper error handling instead of panic in your app
 	}
