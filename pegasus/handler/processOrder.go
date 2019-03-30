@@ -24,6 +24,8 @@ type DeliverMethod struct {
 	DroneTime     float64 `json:"drone_time"`
 	DroneDistance float64 `json:"drone_distance"`
 	DronePrice    float64 `json:"drone_price"`
+	FormatPickup  string  `json:"pickup"`
+	FormatDropoff string  `json:"dropoff"`
 }
 
 func handlerOrder(w http.ResponseWriter, r *http.Request) {
