@@ -30,6 +30,7 @@ func main() {
 	r.Handle("/login", http.HandlerFunc(handler.Login)).Methods("POST", "OPTIONS")
 	// test handle
 	r.Handle("/testget", jwtMiddleware.Handler(http.HandlerFunc(handler.Test))).Methods("GET", "OPTIONS")
+	r.Handle("/order", http.HandlerFunc(handler.handlerOrder)).Methods("POST", "OPTIONS")
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
