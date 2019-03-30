@@ -65,7 +65,7 @@ func handlerOrder(w http.ResponseWriter, r *http.Request) {
 
 func processOrder(order Order) (DeliverMethod, error) {
 
-	c, err := maps.NewClient(maps.WithAPIKey("AIzaSyDERqpcYh65dPejp_1sSCwIktkQ9_Q3xkY"))
+	c, err := maps.NewClient(maps.WithAPIKey(""))
 	if err != nil {
 		log.Fatalf("fatal error: %s", err)
 	}
