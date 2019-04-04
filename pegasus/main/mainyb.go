@@ -21,7 +21,8 @@ type Location struct{
 	Lon float64 `json:"lon"`
 }
 type Order struct{
-    UserId uint16 `json:"UserId"`
+	RobotId uint16 `json:"RobotId"`
+    Username uint16 `json:"Username"`
     Size string `json:"Size"`
     ArrivalTime string `json:"Arrival"`
     Weight float64 `json:"Weight"`
@@ -32,15 +33,34 @@ type Order struct{
 type resp struct{
 	OrderId uint16
 }
+type arrival struct{
+	ArrivalTime string
+}
 func main() {
 	fmt.Println("started-service")
-	http.HandleFunc("/order", handlerOrder)
-	//http.HandleFunc("/track", handlerTrack)
+	jwtMiddleware:=jwtmiddleware.New(jwtmiddleware.Options{
+		ValidationKeyGetter:func(token *jwt.Token) (interface{},error) {
+			return []byte(mySigningKey),nil
+		},
+		SigningMethod:jwt.SigningMethodHS256,
+	})
+	r:=mux.NewRouter()
+	r.Handle("/order",jwtMiddleware.Handler(http.HandlerFunc(handlerOrder))).Methods("POST","OPTIONS")
+	r.Handle("/track",jwtMiddleware.Handler(http.HandlerFunc(handlerTrack))).Methods("GET","OPTIONS")
+	http.Handle("/",r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func handlerOrder(w http.ResponseWriter,r *http.Request){
     fmt.Println("Receive order")
+    w.Header().Set("Content-Type","application/json")
+    w.Header().Set("Access-Control-Allow-Origin","*")
+    w.Header().Set("Access-Control-Allow-Headers","Content-Type,Authorization")
+
+    user:=r.Context().Value("user")
+    claims:=user.(*jwt.Token).Claims
+    username:=claims.(jwt.MapClaims)["Username"]
+
     decoder:=json.NewDecoder(r.Body)
     var p Order
     if err:=decoder.Decode(&p);err!=nil{
@@ -71,7 +91,7 @@ func handlerOrder(w http.ResponseWriter,r *http.Request){
 	}
 	defer q.Close()
     fmt.Println(p.ArrivalTime)
-	_,err=q.Exec(sz+1,p.UserId,p.Size,p.Weight,p.PickupLoc.Lat,p.PickupLoc.Lon,p.DropoffLoc.Lat,p.DropoffLoc.Lon,p.ArrivalTime)
+	_,err=q.Exec(sz+1,username,p.RobotId,p.Size,p.Weight,p.PickupLoc.Lat,p.PickupLoc.Lon,p.DropoffLoc.Lat,p.DropoffLoc.Lon,p.ArrivalTime)
 	if err != nil {
 		panic(err.Error()) // proper error handling instead of panic in your app
 	}
@@ -83,4 +103,42 @@ func handlerOrder(w http.ResponseWriter,r *http.Request){
 		fmt.Println("error:",err)
 	}
 	w.Write(b)
+}
+
+func handlerTrack(w http.ResponseWriter,r *http.Request){
+	fmt.Println("Received one request for track")
+	w.Header().Set("Content-Type","application/json")
+	w.Header().Set("Access-Control-Allow-Origin","*")
+	w.Header().Set("Access-Control-Allow-Headers","Content-Type,Authorization")
+
+	orderId,_:strconv.ParseInt(r.URL.Query().Get("orderid"),10,32)
+	db, err := sql.Open("mysql", USERNAME + ":" + PASSWORD + "@tcp(" +
+		HOSTNAME + ":" + PORT_NUMBER + ")/pegasus")
+    if err != nil {
+		panic(err.Error())  // Just for example purpose. You should use proper error handling instead of panic
+	}
+	// close the db
+	defer db.Close()
+	query,err:=db.Prepare("select ArrivalTime from orders where OrderId=?")
+	if err != nil {
+		panic(err.Error())  // Just for example purpose. You should use proper error handling instead of panic
+	}
+	defer query.Close()
+	q,_:=query.Exec(orderId)
+    
+	var atime string
+	if q.Next(){
+		if err := q.Scan(&atime); err != nil {
+			fmt.Println("err", err)
+	    }
+	}
+	res:=arrival{
+		ArrivalTime:atime,
+	}
+	b,err:=json.Marshal(res)
+	if err!=nil{
+		fmt.Println("error:",err)
+	}
+	w.Write(b)
+
 }
